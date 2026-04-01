@@ -55,9 +55,9 @@ export const signup = async (req, res) => {
 
     // authenticate user
     const { accessToken, refreshToken } = generateToken(user._id);
-    await storeRefreshToken(user._id, refreshToken);
+    await storeRefreshToken(user._id, refreshToken); // storing in redis---->refreshtoken
 
-    setCookies(res, accessToken, refreshToken);
+    setCookies(res, accessToken, refreshToken); // sending tokens in cookies
 
     return res.status(201).json({
       message: "User created Successfully",

@@ -1,5 +1,5 @@
 import express from "express";
-import { protectRoute } from "../middlewares/auth.middleware";
+import { protectRoute } from "../middlewares/auth.middleware.js";
 import {
   addToCart,
   getCartProducts,
