@@ -80,7 +80,6 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-
     if (user && (await user.comparePassword(password))) {
       const { accessToken, refreshToken } = generateToken(user._id);
 
@@ -88,7 +87,7 @@ export const login = async (req, res) => {
       setCookies(res, accessToken, refreshToken);
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "User logged in Successfully",
       id: user._id,
       name: user.name,

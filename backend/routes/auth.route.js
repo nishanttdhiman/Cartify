@@ -4,6 +4,7 @@ import {
   logout,
   signup,
   refreshToken,
+  getProfile,
 } from "../controllers/auth.controller.js";
 import { protectRoute } from "../middlewares/auth.middleware.js";
 
