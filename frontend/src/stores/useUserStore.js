@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axiosInstance from "../lib/axios.js";
 import { toast } from "react-hot-toast";
+import { useCartStore } from "./useCartStore.js";
 
 export const useUserStore = create((set, get) => ({
   user: null,
@@ -90,36 +91,28 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (!error.response) {
-      return Promise.reject(error);
-    }
+    if (!error.response) return Promise.reject(error);
 
     const status = error.response.status;
     const message = error.response?.data?.message || "";
 
-    if (!message.includes("Access token expired")) {
-      return Promise.reject(error);
-    }
     const isRefreshRequest = originalRequest.url.includes(
       "/auth/refresh-token",
     );
-
     const isLoginRequest = originalRequest.url.includes("/auth/login");
 
-    const isProfileRequest = originalRequest.url.includes("/auth/profile");
-
-    // User simply not logged in
-    if (message.includes("No access token provided")) {
-      return Promise.reject(error);
-    }
-
+    // Don't retry if: not 401, already retried, or is a refresh/login request
     if (
       status !== 401 ||
       originalRequest._retry ||
       isRefreshRequest ||
-      isLoginRequest ||
-      isProfileRequest
+      isLoginRequest
     ) {
+      return Promise.reject(error);
+    }
+
+    // Only refresh if the token is expired (not missing/invalid)
+    if (!message.includes("Access token expired")) {
       return Promise.reject(error);
     }
 
@@ -129,18 +122,12 @@ axiosInstance.interceptors.response.use(
       if (!refreshPromise) {
         refreshPromise = useUserStore.getState().refreshToken();
       }
-
       await refreshPromise;
       refreshPromise = null;
-
       return axiosInstance(originalRequest);
     } catch (refreshError) {
       refreshPromise = null;
-
-      useUserStore.setState({
-        user: null,
-      });
-
+      useUserStore.setState({ user: null });
       return Promise.reject(refreshError);
     }
   },

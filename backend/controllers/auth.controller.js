@@ -19,7 +19,7 @@ const storeRefreshToken = async (userId, refreshToken) => {
     await redis.set(
       `refresh_token:${userId}`,
       refreshToken,
-      "EX",
+      "ex",
       7 * 24 * 60 * 60,
     );
   } catch (error) {
@@ -97,20 +97,29 @@ export const login = async (req, res) => {
   }
 };
 
-
 export const logout = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
     if (refreshToken) {
-      const decoded = jwt.verify(
-        refreshToken,
-        process.env.REFRESH_TOKEN_SECRET,
-      );
-      await redis.del(`refresh_token:${decoded.userId}`);
+      try {
+        const decoded = jwt.verify(
+          refreshToken,
+          process.env.REFRESH_TOKEN_SECRET,
+        );
+        await redis.del(`refresh_token:${decoded.userId}`);
+      } catch (err) {
+        // Token invalid/expired — still proceed to clear cookies
+        console.log("Token already invalid, clearing cookies anyway");
+      }
     }
+    const cookieOptions = {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    };
 
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
     res.json({ message: "Logged out successfully" });
   } catch (error) {
     console.log("Error in logout controller", error.message);
